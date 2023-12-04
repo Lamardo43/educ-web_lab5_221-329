@@ -184,7 +184,7 @@ function autoComplete(event) {
     clearCompleteOptions();
     let word = document.querySelector('.search-field').value.trim();
     let url = new URL(
-        'http://cat-facts-api.std-900.ist.mospolytech.ru/autocomplete');
+        'https://cat-facts-api.std-900.ist.mospolytech.ru/autocomplete');
     url.searchParams.append('q', word);
     let xhr = new XMLHttpRequest();
     xhr.open('GET', url);
