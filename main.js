@@ -1,5 +1,5 @@
 function createAuthorElement(record) {
-    let user = record.user || {'name': {'first': '', 'last': ''}};
+    let user = record.user || { 'name': { 'first': '', 'last': '' } };
     let authorElement = document.createElement('div');
     authorElement.classList.add('author-name');
     authorElement.innerHTML = user.name.first + ' ' + user.name.last;
@@ -35,7 +35,6 @@ function createListItemElement(record) {
     itemElement.append(createFooterElement(record));
     return itemElement;
 }
-
 
 function renderRecords(records) {
     let factsList = document.querySelector('.facts-list');
@@ -100,15 +99,9 @@ function downloadData(page = 1) {
     let url = new URL(factsList.dataset.url);
     let perPage = document.querySelector('.per-page-btn').value;
     let searchQuery = document.querySelector('.search-field').value.trim();
-
-    ////////////////////////
-    if (searchQuery !== '') {
-        url.searchParams.append('q', searchQuery);
-    }
-    ////////////////////////
-
     url.searchParams.append('page', page);
     url.searchParams.append('per-page', perPage);
+    url.searchParams.append('q', searchQuery);
     let xhr = new XMLHttpRequest();
     xhr.open('GET', url);
     xhr.responseType = 'json';
@@ -120,89 +113,63 @@ function downloadData(page = 1) {
     xhr.send();
 }
 
-
-/////////////////////
-function clearCompleteOptions() {
-    let options = document.getElementById('search-options');
-    options.style.display = 'none';
-    options.innerHTML = '';
-}
-/////////////////////
-
 function perPageBtnHandler(event) {
     downloadData(1);
-    ////////////
-    clearCompleteOptions();
-    ///////////
 }
 
 function pageBtnHandler(event) {
-    clearCompleteOptions();
     if (event.target.dataset.page) {
         downloadData(event.target.dataset.page);
         window.scrollTo(0, 0);
     }
 }
 
-
-//////////////////////////////////////////////
-function selectAutocompleteOption(value) {
-    document.querySelector('.search-field').value = value;
-    ////////////////
-    clearCompleteOptions();
-    ///////////////
-    // autoComplete(value)
+function searchBtnHandler() {
+    downloadData(1)
 }
 
-function showOptions(response) {
-    let searchOptions = document.getElementById('search-options');
-    if (response.length > 0) {
-        searchOptions.style.display = 'block';
-    } else {
-        searchOptions.style.display = 'none';
-    }
-}
-
-function fillOptions(words) {
-    let searchOptions = document.getElementById('search-options');
-    let currentValue = document.querySelector('.search-field').value;
-    for (i of words) {
-        if (i === currentValue) {
-            continue;
-        }
-        let option = document.createElement('option');
-        option.value = i;
-        option.innerHTML = i;
-        option.addEventListener('click', (event) => {
-            selectAutocompleteOption(event.target.value);
-        });
-        searchOptions.append(option);
-    }
-}
-
-function autoComplete(event) {
-    clearCompleteOptions();
-    let word = document.querySelector('.search-field').value.trim();
-    let url = new URL(
-        'http://cat-facts-api.std-900.ist.mospolytech.ru/autocomplete');
-    url.searchParams.append('q', word);
+function autocompleteRequest(query) {
+    const autocompleteEndpoint = 'http://cat-facts-api.std-900.ist.mospolytech.ru/autocomplete?q=' + query;
     let xhr = new XMLHttpRequest();
-    xhr.open('GET', url);
-    xhr.responseType = 'json';
-    xhr.onload = function () {
-        fillOptions(this.response);
-        showOptions(this.response);
-    };
+    xhr.open('GET', autocompleteEndpoint, false); // false здесь означает синхронный запрос
     xhr.send();
+
+    if (xhr.status === 200) {
+        return JSON.parse(xhr.responseText);
+    } else {
+        console.error('Ошибка:', xhr.status);
+        return null;
+    }
+}
+
+function searchAutocompleteHandler() {
+    let query = document.querySelector('.search-field').value.trim();
+    let suggestionsContainer = document.getElementById('search-options');
+
+    if (query.length === 0) {
+        suggestionsContainer.innerHTML = '';
+        return;
+    }
+
+    let autocompleteData = autocompleteRequest(query);
+
+    if (autocompleteData && autocompleteData.length > 0) {
+        suggestionsContainer.innerHTML = '';
+
+        autocompleteData.forEach(suggestion => {
+            let listItem = document.createElement('option');
+            listItem.textContent = suggestion;
+            suggestionsContainer.appendChild(listItem);
+        });
+    } else {
+        suggestionsContainer.innerHTML = '';
+    }
 }
 
 window.onload = function () {
     downloadData();
     document.querySelector('.pagination').onclick = pageBtnHandler;
     document.querySelector('.per-page-btn').onchange = perPageBtnHandler;
-    document.querySelector('.search-btn').onclick = perPageBtnHandler;
-
-    //////////////
-    document.querySelector('.search-field').oninput = autoComplete;
-    document.querySelector('.search-field').onclick = autoComplete;
+    document.querySelector('.search-btn').onclick = searchBtnHandler;
+    document.querySelector('.search-field').addEventListener('input', searchAutocompleteHandler)
 };
